@@ -15,27 +15,50 @@ def detect_brute_force(
     if window_seconds <= 0:
         raise ValueError("window_seconds must be positive")
 
-    events = sorted(events, key=lambda event: event["timestamp"])
+    sorted_events = sorted(
+        events,
+        key=lambda event: event["timestamp"],
+    )
 
     failures = defaultdict(deque)
+    last_failure = {}
+    alerted_in_episode = defaultdict(bool)
+
     alerts = []
 
-    for event in events:
+    window_duration = timedelta(seconds=window_seconds)
+
+    for event in sorted_events:
         if event["event"] != "failed_login":
             continue
 
         source_ip = event["source_ip"]
         timestamp = event["timestamp"]
-        window = failures[source_ip]
 
+        # Start a new episode after a sufficiently long quiet period.
+        previous_failure = last_failure.get(source_ip)
+
+        if (
+            previous_failure is not None
+            and timestamp - previous_failure > window_duration
+        ):
+            failures[source_ip].clear()
+            alerted_in_episode[source_ip] = False
+
+        last_failure[source_ip] = timestamp
+
+        window = failures[source_ip]
         window.append(timestamp)
 
-        cutoff = timestamp - timedelta(seconds=window_seconds)
+        cutoff = timestamp - window_duration
 
         while window and window[0] < cutoff:
             window.popleft()
 
-        if len(window) == threshold:
+        if (
+            len(window) >= threshold
+            and not alerted_in_episode[source_ip]
+        ):
             alerts.append(
                 {
                     "rule": "repeated_failed_logins",
@@ -45,5 +68,7 @@ def detect_brute_force(
                     "last_seen": window[-1],
                 }
             )
+
+            alerted_in_episode[source_ip] = True
 
     return alerts
