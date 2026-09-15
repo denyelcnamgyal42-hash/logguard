@@ -1,7 +1,10 @@
 import argparse
 from pathlib import Path
 
-from logguard.detection import detect_brute_force
+from logguard.detection import (
+    detect_brute_force,
+    detect_multi_account_targeting,
+)
 from logguard.parser import parse_log_line
 from logguard.reporting import build_report, write_json_report
 
@@ -11,6 +14,7 @@ def analyze_log(
     year: int,
     threshold: int,
     window_seconds: int,
+    username_threshold: int,
     output_path: Path | None = None,
 ) -> None:
     events = []
@@ -22,11 +26,19 @@ def analyze_log(
             if event is not None:
                 events.append(event)
 
-    alerts = detect_brute_force(
+    brute_force_alerts = detect_brute_force(
         events,
         threshold=threshold,
         window_seconds=window_seconds,
     )
+
+    multi_account_alerts = detect_multi_account_targeting(
+        events,
+        username_threshold=username_threshold,
+        window_seconds=window_seconds,
+    )
+
+    alerts = brute_force_alerts + multi_account_alerts
 
     print(f"File: {log_path}")
     print(f"Parsed events: {len(events)}")
@@ -38,7 +50,23 @@ def analyze_log(
         print(f"Rule: {alert['rule']}")
         print(f"Severity: {alert['severity'].upper()}")
         print(f"Source IP: {alert['source_ip']}")
-        print(f"Failed attempts: {alert['failure_count']}")
+
+        if alert["rule"] == "repeated_failed_logins":
+            print(
+                f"Failed attempts: "
+                f"{alert['failure_count']}"
+            )
+
+        elif alert["rule"] == "multiple_account_targeting":
+            print(
+                f"Unique usernames: "
+                f"{alert['unique_usernames']}"
+            )
+            print(
+                "Usernames: "
+                + ", ".join(alert["usernames"])
+            )
+
         print(f"First seen: {alert['first_seen']}")
         print(f"Last seen: {alert['last_seen']}")
 
@@ -95,6 +123,13 @@ def main() -> None:
     )
 
     analyze_parser.add_argument(
+        "--username-threshold",
+        type=int,
+        default=3,
+        help="Unique usernames required to trigger multi-account targeting.",
+    )
+
+    analyze_parser.add_argument(
         "--window",
         type=int,
         default=120,
@@ -120,6 +155,7 @@ def main() -> None:
             year=args.year,
             threshold=args.threshold,
             window_seconds=args.window,
+            username_threshold=args.username_threshold,
             output_path=args.output,
         )
 
