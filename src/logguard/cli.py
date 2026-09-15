@@ -36,6 +36,7 @@ def analyze_log(
         print()
         print("=== SECURITY ALERT ===")
         print(f"Rule: {alert['rule']}")
+        print(f"Severity: {alert['severity'].upper()}")
         print(f"Source IP: {alert['source_ip']}")
         print(f"Failed attempts: {alert['failure_count']}")
         print(f"First seen: {alert['first_seen']}")
@@ -110,7 +111,9 @@ def main() -> None:
 
     if args.command == "analyze":
         if not args.logfile.exists():
-            parser.error(f"log file does not exist: {args.logfile}")
+            parser.error(
+                f"log file does not exist: {args.logfile}"
+            )
 
         analyze_log(
             log_path=args.logfile,

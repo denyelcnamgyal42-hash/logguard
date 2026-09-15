@@ -1,4 +1,4 @@
-from collections import defaultdict, deque
+﻿from collections import defaultdict, deque
 from datetime import timedelta
 
 
@@ -35,7 +35,6 @@ def detect_brute_force(
         source_ip = event["source_ip"]
         timestamp = event["timestamp"]
 
-        # Start a new episode after a sufficiently long quiet period.
         previous_failure = last_failure.get(source_ip)
 
         if (
@@ -62,6 +61,7 @@ def detect_brute_force(
             alerts.append(
                 {
                     "rule": "repeated_failed_logins",
+                    "severity": "medium",
                     "source_ip": source_ip,
                     "failure_count": len(window),
                     "first_seen": window[0],
