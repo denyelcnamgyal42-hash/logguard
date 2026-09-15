@@ -3,6 +3,7 @@ from pathlib import Path
 
 from logguard.detection import detect_brute_force
 from logguard.parser import parse_log_line
+from logguard.reporting import build_report, write_json_report
 
 
 def analyze_log(
@@ -10,6 +11,7 @@ def analyze_log(
     year: int,
     threshold: int,
     window_seconds: int,
+    output_path: Path | None = None,
 ) -> None:
     events = []
 
@@ -38,6 +40,21 @@ def analyze_log(
         print(f"Failed attempts: {alert['failure_count']}")
         print(f"First seen: {alert['first_seen']}")
         print(f"Last seen: {alert['last_seen']}")
+
+    if output_path is not None:
+        report = build_report(
+            log_path,
+            events,
+            alerts,
+        )
+
+        write_json_report(
+            report,
+            output_path,
+        )
+
+        print()
+        print(f"Report written to: {output_path}")
 
 
 def main() -> None:
@@ -83,6 +100,12 @@ def main() -> None:
         help="Detection window in seconds.",
     )
 
+    analyze_parser.add_argument(
+        "--output",
+        type=Path,
+        help="Write the analysis report to a JSON file.",
+    )
+
     args = parser.parse_args()
 
     if args.command == "analyze":
@@ -94,6 +117,7 @@ def main() -> None:
             year=args.year,
             threshold=args.threshold,
             window_seconds=args.window,
+            output_path=args.output,
         )
 
 

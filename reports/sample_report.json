@@ -1,0 +1,20 @@
+{
+  "source_file": "data\\sample_auth.log",
+  "generated_at": "2026-09-15T22:06:53",
+  "summary": {
+    "total_events": 5,
+    "failed_logins": 4,
+    "successful_logins": 1,
+    "unique_source_ips": 3,
+    "security_alerts": 1
+  },
+  "alerts": [
+    {
+      "rule": "repeated_failed_logins",
+      "source_ip": "192.168.1.50",
+      "failure_count": 3,
+      "first_seen": "2026-01-10 10:15:32",
+      "last_seen": "2026-01-10 10:15:48"
+    }
+  ]
+}
